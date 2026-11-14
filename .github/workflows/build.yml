@@ -105,6 +105,98 @@ jobs:
           wait "$server_pid" 2>/dev/null
           echo 'Timed out waiting for the test world to start.'
           exit 1
+      - name: Set up virtual audio for client smoke test
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libflite1 pulseaudio pulseaudio-utils
+          mkdir -p "$RUNNER_TEMP/runtime"
+          chmod 700 "$RUNNER_TEMP/runtime"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/runtime"
+          pulseaudio --daemonize=yes --exit-idle-time=-1 --log-target=file:"$RUNNER_TEMP/pulse.log"
+          for attempt in $(seq 1 20); do
+            if pactl info >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          pactl info
+          pactl load-module module-null-sink sink_name=fd_silent
+      - name: Smoke-test Forge client joining a world
+        id: client_smoke
+        shell: bash
+        env:
+          XDG_RUNTIME_DIR: ${{ runner.temp }}/runtime
+          PULSE_SINK: fd_silent
+          ALSOFT_DRIVERS: pulse
+        run: |
+          mkdir -p run
+          printf 'eula=true\n' > run/eula.txt
+          printf 'online-mode=false\nserver-port=25566\nmax-tick-time=-1\nlevel-name=client-smoke\nview-distance=2\nsimulation-distance=2\n' > run/server.properties
+          timeout 360s gradle runServer --no-daemon > server-client-smoke.log 2>&1 &
+          server_pid=$!
+          for attempt in $(seq 1 150); do
+            if grep -q 'Done (' server-client-smoke.log; then break; fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then
+              wait "$server_pid"
+              result=$?
+              tail -n 100 server-client-smoke.log
+              exit "$result"
+            fi
+            sleep 2
+          done
+          if ! grep -q 'Done (' server-client-smoke.log; then
+            tail -n 100 server-client-smoke.log
+            kill "$server_pid" 2>/dev/null || true
+            echo 'Timed out starting the dedicated server for the client test.'
+            exit 1
+          fi
+          timeout 210s xvfb-run -a gradle runClient --no-daemon -PfdSmokeClient > client-smoke.log 2>&1 &
+          client_pid=$!
+          joined=0
+          for attempt in $(seq 1 100); do
+            if grep -qi 'joined the game' server-client-smoke.log; then
+              joined=1
+              break
+            fi
+            if ! kill -0 "$client_pid" 2>/dev/null; then
+              wait "$client_pid"
+              result=$?
+              tail -n 120 client-smoke.log
+              tail -n 80 server-client-smoke.log
+              kill "$server_pid" 2>/dev/null || true
+              exit "$result"
+            fi
+            sleep 2
+          done
+          if [ "$joined" -eq 1 ]; then
+            sleep 10
+            if kill -0 "$client_pid" 2>/dev/null; then
+              echo 'Forge client connected and remained in the test world.'
+              kill "$client_pid" 2>/dev/null || true
+              kill "$server_pid" 2>/dev/null || true
+              exit 0
+            fi
+          fi
+          echo 'Forge client did not join and remain in the test world.'
+          tail -n 120 client-smoke.log
+          tail -n 80 server-client-smoke.log
+          kill "$client_pid" "$server_pid" 2>/dev/null || true
+          exit 1
+      - name: Report client world-load failure
+        if: failure() && steps.client_smoke.outcome == 'failure' && hashFiles('client-smoke.log') != ''
+        shell: bash
+        run: |
+          details=$(tail -n 40 client-smoke.log | tr '\n' ' ' | cut -c1-1800)
+          echo "::error file=README.md,line=1,title=Client world-load test failed::$details"
+      - name: Upload client smoke logs on failure
+        if: failure() && steps.client_smoke.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-smoke-logs-${{ github.sha }}
+          path: |
+            client-smoke.log
+            server-client-smoke.log
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Report server startup failure
         if: failure() && steps.server_smoke.outcome == 'failure' && hashFiles('server-smoke.log') != ''
         shell: bash

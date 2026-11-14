@@ -15,7 +15,9 @@ minecraft {
     copyIdeResources = true
     runs {
         configureEach { workingDirectory project.file('run'); mods { findaries_horror { source sourceSets.main } } }
-        client { }
+        client {
+            if (project.hasProperty('fdSmokeClient')) args '--quickPlayMultiplayer', '127.0.0.1:25566'
+        }
         server { args '--nogui' }
     }
 }
