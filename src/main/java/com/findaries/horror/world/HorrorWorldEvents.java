@@ -12,7 +12,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.entity.RelativeMovement;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
@@ -230,7 +229,7 @@ public final class HorrorWorldEvents {
         BlockPos at=new BlockPos(0,destination.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,0,0),0);
         prepareDimension(destination,target,at);
         double x=at.getX()+.5, y=at.getY(), z=at.getZ()+.5;
-        player.teleportTo(destination,x,y,z,Set.of(RelativeMovement.X,RelativeMovement.Y,RelativeMovement.Z),player.getYRot(),player.getXRot());
+        player.teleportTo(destination,x,y,z,Set.of(),player.getYRot(),player.getXRot());
         if (target.equals("wonderland")) player.displayClientMessage(Component.literal("minecraft.1.wonderland.0"),true);
         if (target.equals("overworld") && dim.equals("cage_wonderland")) {
             var advancement=player.getServer().getAdvancements().getAdvancement(FindariesHorror.id("alive"));
