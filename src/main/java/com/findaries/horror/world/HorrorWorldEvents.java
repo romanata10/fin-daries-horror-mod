@@ -33,7 +33,6 @@ public final class HorrorWorldEvents {
     private static final Random RANDOM = new Random();
     private static final Map<UUID, Integer> TIMERS = new HashMap<>();
     private static final Map<UUID, Integer> DIMENSION_TIME = new HashMap<>();
-    private static final ResourceKeyHolder KEYS = new ResourceKeyHolder();
     private static int worldClock;
     private static final List<Scheduled> TASKS = new ArrayList<>();
 
@@ -48,10 +47,11 @@ public final class HorrorWorldEvents {
             int remaining = TIMERS.getOrDefault(id, 6000 + RANDOM.nextInt(6000)) - 1;
             if (remaining <= 0) { triggerRandomEvent(player); remaining = 3600 + RANDOM.nextInt(9000); }
             TIMERS.put(id, remaining);
-            if (isDimension(player.serverLevel(), "wonderflowers")) {
+            String area = areaName(player.serverLevel(), player.blockPosition());
+            if (area.equals("wonderflowers")) {
                 int t = DIMENSION_TIME.merge(id, 1, Integer::sum);
                 if (t > 400 && RANDOM.nextInt(1800) == 0) spawnDanger(player);
-            } else if (isDimension(player.serverLevel(), "wonderland")) {
+            } else if (area.equals("wonderland")) {
                 int t = DIMENSION_TIME.merge(id, 1, Integer::sum);
                 if (t > 600 && RANDOM.nextInt(1200) == 0) spawnWatcher(player);
             } else DIMENSION_TIME.remove(id);
@@ -61,7 +61,8 @@ public final class HorrorWorldEvents {
 
     private static void triggerRandomEvent(ServerPlayer player) {
         ServerLevel level = player.serverLevel();
-        if (level.dimension() != Level.OVERWORLD && !isDimension(level, "wonderland")) return;
+        String area = areaName(level, player.blockPosition());
+        if (!area.equals("overworld") && !area.equals("wonderland")) return;
         switch (RANDOM.nextInt(9)) {
             case 0 -> skyTriangle(player);
             case 1 -> mushroomRing(player);
@@ -219,29 +220,31 @@ public final class HorrorWorldEvents {
     }
 
     public static void enterPortal(ServerPlayer player, BlockPos portalPos) {
-        ServerLevel source=player.serverLevel();
-        String dim=source.dimension().location().getPath();
-        String target = dim.equals("overworld") ? "wonderland" : dim.equals("wonderland") ? "wonderflowers" : dim.equals("wonderflowers") ? "cage_wonderland" : "overworld";
-        ResourceKeyHolder holder=KEYS;
-        net.minecraft.resources.ResourceKey<Level> key=holder.key(target);
-        ServerLevel destination=player.getServer().getLevel(key);
-        if(destination==null){player.displayClientMessage(Component.literal("Мир не найден. Проверьте, что datapack измерений включён."),true);return;}
-        BlockPos at=new BlockPos(0,destination.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,0,0),0);
-        prepareDimension(destination,target,at);
-        double x=at.getX()+.5, y=at.getY(), z=at.getZ()+.5;
-        player.teleportTo(destination,x,y,z,Set.of(),player.getYRot(),player.getXRot());
-        if (target.equals("wonderland")) player.displayClientMessage(Component.literal("minecraft.1.wonderland.0"),true);
-        if (target.equals("overworld") && dim.equals("cage_wonderland")) {
+        ServerLevel level=player.serverLevel();
+        String area=areaName(level,portalPos);
+        String target=area.equals("overworld")?"wonderland":area.equals("wonderland")?"wonderflowers":area.equals("wonderflowers")?"cage_wonderland":"overworld";
+        BlockPos at;
+        if(target.equals("overworld")) {
+            at=level.getSharedSpawnPos();
+            if(at.getY()<2) at=new BlockPos(0,level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,0,0),0);
+        } else {
+            int center=areaCenter(target);
+            at=new BlockPos(center,level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,center,0),0);
+            prepareDimension(level,target,at);
+        }
+        player.connection.teleport(at.getX()+.5,at.getY(),at.getZ()+.5,player.getYRot(),player.getXRot());
+        if(target.equals("wonderland")) player.displayClientMessage(Component.literal("minecraft.1.wonderland.0"),true);
+        if(target.equals("overworld")&&area.equals("cage_wonderland")) {
             var advancement=player.getServer().getAdvancements().getAdvancement(FindariesHorror.id("alive"));
             if(advancement!=null) player.getAdvancements().award(advancement,"escape");
         }
-        if(target.equals("wonderflowers")){for(int i=0;i<5;i++){final int step=i;TASKS.add(new Scheduled(worldClock+i*3,()->source.playSound(null,portalPos,SoundEvents.WARDEN_STEP,SoundSource.AMBIENT,1.2F,.65F+step*.08F)));}}
-        destination.playSound(null,at,SoundEvents.AMBIENT_CAVE.value(),SoundSource.AMBIENT,.8F,.7F);
+        if(target.equals("wonderflowers")){for(int i=0;i<5;i++){final int step=i;TASKS.add(new Scheduled(worldClock+i*3,()->level.playSound(null,portalPos,SoundEvents.WARDEN_STEP,SoundSource.AMBIENT,1.2F,.65F+step*.08F)));}}
+        level.playSound(null,at,SoundEvents.AMBIENT_CAVE.value(),SoundSource.AMBIENT,.8F,.7F);
     }
 
     private static final Set<String> BUILT=Collections.synchronizedSet(new HashSet<>());
     private static void prepareDimension(ServerLevel level,String name,BlockPos spawn) {
-        if (!BUILT.add(level.dimension().location().toString())) return;
+        if (!BUILT.add(name)) return;
         int x=spawn.getX(),y=Math.max(spawn.getY(),4),z=spawn.getZ();
         for(int dx=-16;dx<=16;dx++)for(int dz=-16;dz<=16;dz++) level.setBlock(new BlockPos(x+dx,y-1,z+dz),name.equals("cage_wonderland")?Blocks.OAK_PLANKS.defaultBlockState():Blocks.GRASS_BLOCK.defaultBlockState(),3);
         if(name.equals("wonderland")) {
@@ -317,7 +320,14 @@ public final class HorrorWorldEvents {
     }
     private static void placePortal(ServerLevel level,BlockPos p){for(int dx=-1;dx<=1;dx++)for(int dy=0;dy<3;dy++)level.setBlock(p.offset(dx,dy,0),FindariesHorror.WONDER_PORTAL.get().defaultBlockState(),3);}
     private static BlockPos findGround(ServerLevel level,BlockPos p){int y=level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,p.getX(),p.getZ());return new BlockPos(p.getX(),y,p.getZ());}
-    private static boolean isDimension(ServerLevel level,String path){return level.dimension().location().getPath().equals(path);}
+    private static String areaName(ServerLevel level,BlockPos pos) {
+        if(level.dimension()!=Level.OVERWORLD) return "overworld";
+        for(String name:List.of("wonderland","wonderflowers","cage_wonderland")) if(Math.abs(pos.getX()-areaCenter(name))<384&&Math.abs(pos.getZ())<384) return name;
+        return "overworld";
+    }
+    private static int areaCenter(String name) {
+        return switch(name){case "wonderland"->30000;case "wonderflowers"->60000;case "cage_wonderland"->90000;default->0;};
+    }
 
     @SubscribeEvent public static void onStopping(ServerStoppingEvent event) {
         TASKS.clear(); TIMERS.clear(); DIMENSION_TIME.clear(); BUILT.clear(); worldClock=0;
@@ -335,8 +345,5 @@ public final class HorrorWorldEvents {
         }
     }
     private record Scheduled(int at, Runnable action) {}
-    private static final class ResourceKeyHolder {
-        net.minecraft.resources.ResourceKey<Level> key(String path){return net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DIMENSION,FindariesHorror.id(path));}
-    }
     private HorrorWorldEvents(){}
 }

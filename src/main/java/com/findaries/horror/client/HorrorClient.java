@@ -29,7 +29,9 @@ public final class HorrorClient {
     }
     private static final IGuiOverlay VERSION = (gui, pose, partialTick, width, height) -> {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null && mc.level.dimension().location().equals(FindariesHorror.id("wonderland"))) {
+        if (mc.level != null && mc.player != null && mc.level.dimension() == net.minecraft.world.level.Level.OVERWORLD
+                && Math.abs(mc.player.blockPosition().getX() - 30000) < 384
+                && Math.abs(mc.player.blockPosition().getZ()) < 384) {
             pose.drawString(mc.font, "minecraft.1.wonderland.0", 7, 7, 0xFFF4F45A, true);
         }
     };
