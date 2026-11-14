@@ -1,0 +1,28 @@
+{
+  "temperature": 1.0,
+  "downfall": 0.6,
+  "temperature_modifier": "none",
+  "spawners": {},
+  "spawn_costs": {},
+  "carvers": {},
+  "features": {},
+  "spawn_inside_lava": false,
+  "creature_spawn_probability": 0.1449999976158142,
+  "entity_spawn_probability": 0.05,
+  "has_precipitation": true,
+  "surface_builder": "minecraft:grass",
+  "effects": {
+    "sky_color": 11493443,
+    "water_fog_color": 329011,
+    "water_color": 4159205,
+    "fog_color": 12638463,
+    "mood_sound": {
+      "block_search_extent": 8,
+      "offset": 2,
+      "sound": "minecraft:ambient.cave",
+      "tick_delay": 6000
+    },
+    "music": null,
+    "grass_color_modifier": "none"
+  }
+}
