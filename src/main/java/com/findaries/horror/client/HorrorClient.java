@@ -5,7 +5,7 @@ import com.findaries.horror.entity.HorrorEntities;
 import com.findaries.horror.entity.LongFigureEntity;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.HumanoidModel;
-import net.minecraft.client.model.geom.EntityModelLayers;
+import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.HumanoidMobRenderer;
 import net.minecraft.resources.ResourceLocation;
@@ -30,13 +30,13 @@ public final class HorrorClient {
     private static final IGuiOverlay VERSION = (gui, pose, partialTick, width, height) -> {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level != null && mc.level.dimension().location().equals(FindariesHorror.id("wonderland"))) {
-            gui.getFont().drawShadow(pose.pose(), "minecraft.1.wonderland.0", 7, 7, 0xFFF4F45A);
+            pose.drawString(mc.font, "minecraft.1.wonderland.0", 7, 7, 0xFFF4F45A, true);
         }
     };
     private static final class FigureRenderer extends HumanoidMobRenderer<LongFigureEntity, HumanoidModel<LongFigureEntity>> {
         private final float scale;
         FigureRenderer(EntityRendererProvider.Context context, float scale) {
-            super(context, new HumanoidModel<>(context.bakeLayer(EntityModelLayers.PLAYER)), .35f);
+            super(context, new HumanoidModel<>(context.bakeLayer(ModelLayers.PLAYER)), .35f);
             this.scale=scale;
         }
         @Override protected void scale(LongFigureEntity entity, com.mojang.blaze3d.vertex.PoseStack pose, float partialTick) {
