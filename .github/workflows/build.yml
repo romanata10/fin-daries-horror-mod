@@ -105,6 +105,72 @@ jobs:
           wait "$server_pid" 2>/dev/null
           echo 'Timed out waiting for the test world to start.'
           exit 1
+      - name: Set up virtual audio for client smoke test
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libflite1 pulseaudio pulseaudio-utils
+          mkdir -p "$RUNNER_TEMP/runtime"
+          chmod 700 "$RUNNER_TEMP/runtime"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/runtime"
+          pulseaudio --daemonize=yes --exit-idle-time=-1 --log-target=file:"$RUNNER_TEMP/pulse.log"
+          for attempt in $(seq 1 20); do
+            if pactl info >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          pactl info
+          pactl load-module module-null-sink sink_name=fd_silent
+      - name: Smoke-test Forge client loading a world
+        id: client_smoke
+        shell: bash
+        env:
+          XDG_RUNTIME_DIR: ${{ runner.temp }}/runtime
+          PULSE_SINK: fd_silent
+          ALSOFT_DRIVERS: pulse
+        run: |
+          set +e
+          timeout 360s xvfb-run -a gradle runClient --no-daemon -PfdSmokeClient > client-smoke.log 2>&1 &
+          client_pid=$!
+          for attempt in $(seq 1 180); do
+            if grep -q 'Done (' client-smoke.log; then
+              echo 'Forge client opened the smoke-test world successfully.'
+              kill "$client_pid" 2>/dev/null
+              wait "$client_pid" 2>/dev/null
+              exit 0
+            fi
+            if ! kill -0 "$client_pid" 2>/dev/null; then
+              wait "$client_pid"
+              result=$?
+              tail -n 120 client-smoke.log
+              exit "$result"
+            fi
+            sleep 2
+          done
+          tail -n 120 client-smoke.log
+          kill "$client_pid" 2>/dev/null
+          wait "$client_pid" 2>/dev/null
+          echo 'Timed out waiting for the integrated test world to open.'
+          exit 1
+      - name: Report client startup failure
+        if: failure() && steps.client_smoke.outcome == 'failure' && hashFiles('client-smoke.log') != ''
+        shell: bash
+        run: |
+          {
+            echo '### Forge client world-load diagnostics'
+            echo '```text'
+            grep -n -E '(FATAL|ERROR|Exception|Caused by:|Starting integrated|Preparing start region|Done \(|Could not|NoClassDef|Failed to|Unable to)' client-smoke.log | tail -n 60 || tail -n 100 client-smoke.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          details=$(grep -n -E '(FATAL|ERROR|Exception|Caused by:|Starting integrated|Preparing start region|Done \(|Could not|NoClassDef|Failed to|Unable to)' client-smoke.log | tail -n 30 | tr '\n' ' ' | cut -c1-1800)
+          if [ -z "$details" ]; then details=$(tail -n 30 client-smoke.log | tr '\n' ' ' | cut -c1-1800); fi
+          echo "::error file=README.md,line=1,title=Client smoke test failed::$details"
+      - name: Upload client log on failure
+        if: failure() && steps.client_smoke.outcome == 'failure' && hashFiles('client-smoke.log') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-smoke-log-${{ github.sha }}
+          path: client-smoke.log
+          retention-days: 7
       - name: Report server startup failure
         if: failure() && steps.server_smoke.outcome == 'failure' && hashFiles('server-smoke.log') != ''
         shell: bash
