@@ -105,6 +105,8 @@ jobs:
           wait "$server_pid" 2>/dev/null
           echo 'Timed out waiting for the test world to start.'
           exit 1
+      - name: Install headless client audio dependency
+        run: sudo apt-get update -qq && sudo apt-get install -y libflite1
       - name: Smoke-test Forge client loading a world
         id: client_smoke
         shell: bash
@@ -139,10 +141,10 @@ jobs:
           {
             echo '### Forge client world-load diagnostics'
             echo '```text'
-            grep -n -A4 -B2 -E '(Exception|Error|Caused by:|Could not|NoClassDef|Failed to|Unable to|ERROR)' client-smoke.log | head -n 100 || tail -n 100 client-smoke.log
+            grep -n -E '(FATAL|ERROR|Exception|Caused by:|Starting integrated|Preparing start region|Done \(|Could not|NoClassDef|Failed to|Unable to)' client-smoke.log | tail -n 60 || tail -n 100 client-smoke.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          details=$(grep -n -A3 -B1 -E '(Exception|Error|Caused by:|Could not|NoClassDef|Failed to|Unable to|ERROR)' client-smoke.log | head -n 40 | tr '\n' ' ' | cut -c1-1800)
+          details=$(grep -n -E '(FATAL|ERROR|Exception|Caused by:|Starting integrated|Preparing start region|Done \(|Could not|NoClassDef|Failed to|Unable to)' client-smoke.log | tail -n 30 | tr '\n' ' ' | cut -c1-1800)
           if [ -z "$details" ]; then details=$(tail -n 30 client-smoke.log | tr '\n' ' ' | cut -c1-1800); fi
           echo "::error file=README.md,line=1,title=Client world smoke test failed::$details"
       - name: Upload client log on failure
