@@ -137,7 +137,7 @@ public final class HorrorWorldEvents {
 
     private static void mushroomRing(ServerPlayer player) {
         ServerLevel level=player.serverLevel(); BlockPos origin=player.blockPosition();
-        level.playSound(null, origin, SoundEvents.AMBIENT_CAVE, SoundSource.AMBIENT, 1.7F, .65F);
+        level.playSound(null, origin, SoundEvents.AMBIENT_CAVE.value(), SoundSource.AMBIENT, 1.7F, .65F);
         List<BlockPos> placed=new ArrayList<>();
         List<BlockPos> giantPlaced=new ArrayList<>();
         for (int i=0;i<2;i++) {
@@ -200,7 +200,7 @@ public final class HorrorWorldEvents {
     private static void spawnWatcher(ServerPlayer player) {
         ServerLevel level=player.serverLevel(); LongFigureEntity mob=HorrorEntities.WONDER_WATCHER.get().create(level); if(mob==null)return;
         BlockPos p=findGround(level,player.blockPosition().offset(-18-RANDOM.nextInt(12),0,12)); mob.moveTo(p.getX()+.5,p.getY(),p.getZ()+.5,0,0); mob.setNoAi(true); level.addFreshEntity(mob);
-        level.playSound(null,p,SoundEvents.AMBIENT_CAVE,SoundSource.AMBIENT,.8F,.8F);
+        level.playSound(null,p,SoundEvents.AMBIENT_CAVE.value(),SoundSource.AMBIENT,.8F,.8F);
     }
     private static void spawnBlueWalker(ServerPlayer player) {
         ServerLevel level=player.serverLevel(); BlockPos p=findGround(level,player.blockPosition().offset(10+RANDOM.nextInt(8),0,-8));
@@ -237,7 +237,7 @@ public final class HorrorWorldEvents {
             if(advancement!=null) player.getAdvancements().award(advancement,"escape");
         }
         if(target.equals("wonderflowers")){for(int i=0;i<5;i++){final int step=i;TASKS.add(new Scheduled(worldClock+i*3,()->source.playSound(null,portalPos,SoundEvents.WARDEN_STEP,SoundSource.AMBIENT,1.2F,.65F+step*.08F)));}}
-        destination.playSound(null,at,SoundEvents.AMBIENT_CAVE,SoundSource.AMBIENT,.8F,.7F);
+        destination.playSound(null,at,SoundEvents.AMBIENT_CAVE.value(),SoundSource.AMBIENT,.8F,.7F);
     }
 
     private static final Set<String> BUILT=Collections.synchronizedSet(new HashSet<>());

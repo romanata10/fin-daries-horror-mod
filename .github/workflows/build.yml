@@ -36,10 +36,10 @@ jobs:
             {
               echo '### Gradle failure summary'
               echo '```text'
-              grep -E '(^FAILURE:|^\* What went wrong:|^Execution failed|error:|Could not resolve|Could not find|Caused by:)' build.log | tail -n 40 || tail -n 80 build.log
+              grep -A4 -B1 -E '(error:|^FAILURE:|^\* What went wrong:|Could not resolve|Could not find|Caused by:)' build.log | tail -n 60 || tail -n 80 build.log
               echo '```'
             } >> "$GITHUB_STEP_SUMMARY"
-            summary=$(grep -E '(^FAILURE:|^\* What went wrong:|^Execution failed|error:|Could not resolve|Could not find|Caused by:)' build.log | tail -n 8 | tr '\n' ' ' | cut -c1-1800)
+            summary=$(grep -A4 -B1 -E '(error:|^FAILURE:|^\* What went wrong:|Could not resolve|Could not find|Caused by:)' build.log | tail -n 30 | tr '\n' ' ' | cut -c1-1800)
             if [ -z "$summary" ]; then summary=$(tail -n 20 build.log | tr '\n' ' ' | cut -c1-1800); fi
             echo "::error file=README.md,line=1,title=Gradle build failed::$summary"
           fi
