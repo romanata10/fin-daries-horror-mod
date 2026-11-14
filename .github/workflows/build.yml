@@ -110,6 +110,8 @@ jobs:
       - name: Smoke-test Forge client loading a world
         id: client_smoke
         shell: bash
+        env:
+          ALSOFT_DRIVERS: null
         run: |
           set +e
           timeout 360s xvfb-run -a gradle runClient --no-daemon -PfdSmokeClient > client-smoke.log 2>&1 &
