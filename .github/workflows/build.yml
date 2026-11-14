@@ -146,6 +146,12 @@ jobs:
             fi
             sleep 2
           done
+          echo 'Client did not report integrated-world readiness; collecting JVM process/thread diagnostics.' | tee -a client-smoke.log
+          ps -eo pid,ppid,stat,etime,args | grep -E '[j]ava|[G]radle|[M]inecraft' | tee -a client-smoke.log
+          game_pid=$(ps -eo pid,args | awk '/java/ && /BootstrapLauncher/ {print $1; exit}')
+          if [ -n "$game_pid" ]; then
+            jcmd "$game_pid" Thread.print >> client-smoke.log 2>&1 || true
+          fi
           tail -n 120 client-smoke.log
           kill "$client_pid" 2>/dev/null
           wait "$client_pid" 2>/dev/null
@@ -156,12 +162,12 @@ jobs:
         shell: bash
         run: |
           {
-            echo '### Forge client world-load diagnostics'
+            echo '### Forge client world-load diagnostics (last 120 lines)'
             echo '```text'
-            grep -n -E '(FATAL|ERROR|Exception|Caused by:|Starting integrated|Preparing start region|Done \(|Could not|NoClassDef|Failed to|Unable to)' client-smoke.log | tail -n 60 || tail -n 100 client-smoke.log
+            tail -n 120 client-smoke.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          details=$(grep -n -E '(FATAL|ERROR|Exception|Caused by:|Starting integrated|Preparing start region|Done \(|Could not|NoClassDef|Failed to|Unable to)' client-smoke.log | tail -n 30 | tr '\n' ' ' | cut -c1-1800)
+          details=$(grep -E '(FATAL|ERROR|Exception|Caused by:|Starting integrated|Preparing start region|Done \(|Server thread|Render thread|main thread|BootstrapLauncher)' client-smoke.log | tail -n 30 | tr '\n' ' ' | cut -c1-1800)
           if [ -z "$details" ]; then details=$(tail -n 30 client-smoke.log | tr '\n' ' ' | cut -c1-1800); fi
           echo "::error file=README.md,line=1,title=Client smoke test failed::$details"
       - name: Upload client log on failure
