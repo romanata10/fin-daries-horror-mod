@@ -129,9 +129,9 @@ jobs:
           ALSOFT_DRIVERS: pulse
         run: |
           set +e
-          timeout 360s xvfb-run -a gradle runClient --no-daemon -PfdSmokeClient > client-smoke.log 2>&1 &
+          timeout 210s xvfb-run -a gradle runClient --no-daemon -PfdSmokeClient > client-smoke.log 2>&1 &
           client_pid=$!
-          for attempt in $(seq 1 180); do
+          for attempt in $(seq 1 90); do
             if grep -q 'Done (' client-smoke.log; then
               echo 'Forge client opened the smoke-test world successfully.'
               kill "$client_pid" 2>/dev/null
@@ -148,9 +148,14 @@ jobs:
           done
           echo 'Client did not report integrated-world readiness; collecting JVM process/thread diagnostics.' | tee -a client-smoke.log
           ps -eo pid,ppid,stat,etime,args | grep -E '[j]ava|[G]radle|[M]inecraft' | tee -a client-smoke.log
-          game_pid=$(ps -eo pid,args | awk '/java/ && /BootstrapLauncher/ {print $1; exit}')
+          jcmd -l | tee -a client-smoke.log
+          game_pid=$(jcmd -l | awk '/BootstrapLauncher/ {print $1; exit}')
           if [ -n "$game_pid" ]; then
-            jcmd "$game_pid" Thread.print >> client-smoke.log 2>&1 || true
+            jcmd "$game_pid" Thread.print > "$RUNNER_TEMP/client-thread-dump.txt" 2>&1 || true
+            for thread_name in 'Server thread' 'Render thread'; do
+              echo "--- $thread_name stack ---" | tee -a client-smoke.log
+              awk -v wanted="$thread_name" 'index($0, "\"" wanted "\"") == 1 {capture=1} capture {print; if (capture && NF == 0) exit}' "$RUNNER_TEMP/client-thread-dump.txt" | tee -a client-smoke.log
+            done
           fi
           tail -n 120 client-smoke.log
           kill "$client_pid" 2>/dev/null
@@ -167,7 +172,7 @@ jobs:
             tail -n 120 client-smoke.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          details=$(grep -E '(FATAL|ERROR|Exception|Caused by:|Starting integrated|Preparing start region|Done \(|Server thread|Render thread|main thread|BootstrapLauncher)' client-smoke.log | tail -n 30 | tr '\n' ' ' | cut -c1-1800)
+          details=$(tail -n 50 client-smoke.log | tr '\n' ' ' | tail -c 1800)
           if [ -z "$details" ]; then details=$(tail -n 30 client-smoke.log | tr '\n' ' ' | cut -c1-1800); fi
           echo "::error file=README.md,line=1,title=Client smoke test failed::$details"
       - name: Upload client log on failure
