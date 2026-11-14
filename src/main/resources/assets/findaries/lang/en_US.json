@@ -1,0 +1,22 @@
+{
+  "block.findaries.giant_diamond_block": "Giant Diamond Block",
+  "block.findaries.giant_cobblestone_block": "Giant Cobblestone Block",
+  "block.findaries.giant_crafting_table_block": "Giant Crafting Table",
+  "block.findaries.giant_poppy": "Giant Poppy",
+  "block.findaries.giant_dandelion": "Giant Dandelion",
+  "block.findaries.wonder_portal": "Portal to wonderland.avi",
+  "block.findaries.colorful_dots_portal": "Colorful Dots Portal",
+  "block.findaries.white_portal": "White Portal (Exit)",
+  "block.findaries.elevator": "Elevator",
+  "block.findaries.link_portal": "Link Portal",
+  "entity.findaries.faceless_steve": "Faceless Steve",
+  "entity.findaries.watcher": "Watcher",
+  "entity.findaries.danger_12": "danger_12",
+  "entity.findaries.blue_stranger": "Blue Stranger",
+  "entity.findaries.mushroom_legs": "Mushroom on Legs",
+  "entity.findaries.rising_thing": "Rising Thing",
+  "entity.findaries.ufo": "UFO",
+  "entity.findaries.sky_thing": "Sky Thing",
+  "advancement.findaries.alive": "Alive",
+  "advancement.findaries.alive.desc": "Escape cage_wonderland through the white portal"
+}

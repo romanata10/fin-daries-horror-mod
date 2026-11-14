@@ -1,0 +1,90 @@
+// Fin Diaries Horror Mod — Forge 1.20.1
+// NOTE: this sandbox cannot download ForgeGradle/Maven artifacts (blocked hosts),
+// so the project cannot be compiled here. To build, open this folder on a machine
+// with JDK 17 and internet access to Maven, then run:  ./gradlew build
+// (See BUILD.md for details.)
+
+buildscript {
+    repositories {
+        maven { url = 'https://maven.minecraftforge.net' }
+        mavenCentral()
+    }
+    dependencies {
+        classpath "net.minecraftforge.gradle:ForgeGradle:6.0.124"
+    }
+}
+
+plugins {
+    id 'net.minecraftforge.gradle' version '6.0.124'
+}
+
+version = '1.20.1-1.0.0'
+group = 'com.findaries.horror'
+
+base {
+    archivesName = 'fin-daries-horror-mod'
+}
+
+repositories {
+    maven { url = 'https://maven.minecraftforge.net' }
+    mavenCentral()
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:1.20.1-47.1.63"
+}
+
+processResources {
+    inputs.property "version", project.version
+    inputs.property "mcversion", project.dependencies.named('minecraft').get().version
+
+    from(sourceSets.main.resources.srcDirs) {
+        it.filter { line ->
+            line.replace('@version@', project.version)
+                .replace('@mcversion@', project.dependencies.named('minecraft').get().version)
+        }
+    }
+}
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+}
+
+compileJava {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                fin-daries-horror-mod {
+                    source sourceSets.main
+                }
+            }
+        }
+        server {
+            workingDirectory project.file('run')
+            mods {
+                fin-daries-horror-mod {
+                    source sourceSets.main
+                }
+            }
+        }
+        data {
+            workingDirectory project.file('run')
+            args '--mod', 'findaries', '--all', '--output', file('src/generated/resources/'),
+                 '--existing', file('src/main/resources/')
+            mods {
+                fin-daries-horror-mod {
+                    source sourceSets.main
+                }
+            }
+        }
+    }
+}

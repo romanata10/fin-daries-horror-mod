@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+issueTrackerURL="https://github.com/romanata10/fin-daries-horror-mod/issues"
+license="All Rights Reserved"
+
+[[mods]]
+modId="findaries"
+version="1.20.1-1.0.0"
+displayName="Fin Diaries Horror"
+description='''Хоррор-мод по мотивам канала Fin Diaries (@findaries8589). Гигантский черный треугольник в небе, безликий Стив (длинноногий), порталы в wonderland.avi / wonderflowers / cage_wonderland, случайные аномалии и события.'''
+authors="FinDiaries"
+
+[[mods]]
+modId="forge"
+version="[47.1.63,)"
+minimumVersion="47.1.63"
+
+[[dependencies.findaries]]
+modId="forge"
+mandatory=true
+versionRange="[47.1.63,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.findaries]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1]"
+ordering="NONE"
+side="BOTH"
