@@ -45,8 +45,8 @@ public final class HorrorWorldEvents {
         while (taskIterator.hasNext()) { Scheduled task = taskIterator.next(); if (task.at <= worldClock) { taskIterator.remove(); task.action.run(); } }
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             UUID id = player.getUUID();
-            int remaining = TIMERS.getOrDefault(id, 900 + RANDOM.nextInt(1800)) - 1;
-            if (remaining <= 0) { triggerRandomEvent(player); remaining = 1800 + RANDOM.nextInt(4200); }
+            int remaining = TIMERS.getOrDefault(id, 6000 + RANDOM.nextInt(6000)) - 1;
+            if (remaining <= 0) { triggerRandomEvent(player); remaining = 3600 + RANDOM.nextInt(9000); }
             TIMERS.put(id, remaining);
             if (isDimension(player.serverLevel(), "wonderflowers")) {
                 int t = DIMENSION_TIME.merge(id, 1, Integer::sum);
@@ -80,7 +80,7 @@ public final class HorrorWorldEvents {
         BlockPos center = player.blockPosition().above(24 + RANDOM.nextInt(10));
         level.playSound(null, player.blockPosition(), SoundEvents.WARDEN_ROAR, SoundSource.AMBIENT, 2.0F, 0.55F);
         // A huge, moving, three-dimensional silhouette made from hundreds of dark ash motes.
-        for (int tick = 0; tick < 90; tick += 3) {
+        for (int tick = 0; tick < 90; tick += 9) {
             final int frame = tick;
             TASKS.add(new Scheduled(worldClock + tick, () -> {
                 if (!player.isAlive() || player.serverLevel() != level) return;
@@ -90,13 +90,13 @@ public final class HorrorWorldEvents {
                 double[][] p = {{cx,cy,cz-17},{cx-26,cy-7,cz+19},{cx+26,cy-7,cz+19}};
                 for (int edge=0; edge<3; edge++) {
                     double[] a=p[edge], b=p[(edge+1)%3];
-                    for (int n=0; n<=42; n++) {
-                        double q=n/42.0;
+                    for (int n=0; n<=18; n++) {
+                        double q=n/18.0;
                         level.sendParticles(new DustParticleOptions(new Vector3f(.015f,.018f,.025f), 2.5f), a[0]+(b[0]-a[0])*q, a[1]+(b[1]-a[1])*q, a[2]+(b[2]-a[2])*q, 2, .15,.15,.15,0);
                     }
                 }
                 // cross-bracing gives the passing shape depth instead of a flat outline
-                for (int n=0;n<24;n++) {
+                for (int n=0;n<24;n+=3) {
                     double q=n/24.0;
                     level.sendParticles(ParticleTypes.LARGE_SMOKE, cx-16+q*32,cy-4,cz+8,2,.4,.25,.4,0);
                 }
@@ -108,10 +108,10 @@ public final class HorrorWorldEvents {
     private static void skySlab(ServerPlayer player) {
         ServerLevel level=player.serverLevel(); BlockPos pos=player.blockPosition().above(25);
         level.playSound(null,player.blockPosition(),SoundEvents.WITHER_AMBIENT,SoundSource.AMBIENT,.7F,.45F);
-        for(int frame=0;frame<70;frame+=2){final int f=frame; TASKS.add(new Scheduled(worldClock+frame,()->{
+        for(int frame=0;frame<70;frame+=4){final int f=frame; TASKS.add(new Scheduled(worldClock+frame,()->{
             if(!player.isAlive()||player.serverLevel()!=level)return;
             double cx=pos.getX()+34-f, cy=pos.getY()+Math.sin(f*.07)*2, cz=pos.getZ()+2;
-            for(int x=-10;x<=10;x++)for(int z=-4;z<=4;z++){
+            for(int x=-9;x<=9;x+=3)for(int z=-4;z<=4;z+=2){
                 if(Math.abs(x)<9||Math.abs(z)<3)level.sendParticles(new DustParticleOptions(new Vector3f(.008f,.009f,.014f),2.0f),cx+x,cy+z*.22,cz+z,1,0,0,0,0);
             }
             for(int n=0;n<5;n++)level.sendParticles(ParticleTypes.SMOKE,cx-12+RANDOM.nextInt(24),cy-2,cz-5+RANDOM.nextInt(10),2,.1,.1,.1,0);
@@ -121,16 +121,16 @@ public final class HorrorWorldEvents {
         ServerLevel level=player.serverLevel(); BlockPos pos=player.blockPosition().above(28);
         level.playSound(null,player.blockPosition(),SoundEvents.WARDEN_ROAR,SoundSource.AMBIENT,1.3F,.38F);
         // A colossal saucer crosses the sky. Its broad, flattened rings create the silhouette and perspective.
-        for(int frame=0;frame<100;frame+=2){final int f=frame; TASKS.add(new Scheduled(worldClock+frame,()->{
+        for(int frame=0;frame<100;frame+=5){final int f=frame; TASKS.add(new Scheduled(worldClock+frame,()->{
             if(!player.isAlive()||player.serverLevel()!=level)return;
             double cx=pos.getX()-450+f*9, cy=pos.getY()+Math.sin(f*.04)*8, cz=pos.getZ()+3;
-            for(int n=0;n<192;n++){
+            for(int n=0;n<192;n+=4){
                 double a=2*Math.PI*n/192.0; double r=475+28*Math.sin(a*3);
                 double xx=cx+Math.cos(a)*r, zz=cz+Math.sin(a)*r*.48;
                 level.sendParticles(new DustParticleOptions(new Vector3f(.004f,.006f,.012f),3.4f),xx,cy+Math.sin(a*2)*3,zz,2,.8,.3,.8,0);
                 if(n%3==0)level.sendParticles(ParticleTypes.SMOKE,xx,cy-5,zz,1,.8,.2,.8,0);
             }
-            for(int n=0;n<18;n++){double a=n*Math.PI/9;level.sendParticles(new DustParticleOptions(new Vector3f(.009f,.012f,.022f),2.5f),cx+Math.cos(a)*24,cy+4,cz+Math.sin(a)*12,1,.2,.2,.2,0);}
+            for(int n=0;n<18;n+=3){double a=n*Math.PI/9;level.sendParticles(new DustParticleOptions(new Vector3f(.009f,.012f,.022f),2.5f),cx+Math.cos(a)*24,cy+4,cz+Math.sin(a)*12,1,.2,.2,.2,0);}
         }));}
     }
 
